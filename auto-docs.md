@@ -281,3 +281,6 @@ Audita o servidor MCP selecionado contra 5 vetores de ataque principais:
 25. **Salvamento Instantâneo no Bucket sem Bloqueio de Rede (`MCPRegistrationCard.tsx`)**:
     - Reestruturado o formulário para salvar o servidor MCP no Bucket do contrato **instantaneamente ao clicar em "Salvar & Conectar"**, sem travar nem aguardar sondagens lentas de rede.
     - Garante que a gravação no Bucket ocorra em 100% das submissões com feedback visual imediato.
+26. **Disparo Direto de Comando SET no Bucket ao Salvar (`mcpService.ts`, `App.tsx`)**:
+    - Ajustadas as funções `addTool`, `toggleToolEnabled` e `deleteTool` para reutilizarem o estado em memória e dispararem diretamente o comando `method: "set"` no URI `/buckets/mcp_servers`.
+    - Eliminada a chamada intermediária `method: "get"` antes de salvar, fazendo com que a ação de clique envie a requisição `SET` imediatamente ao Bucket do Blip.

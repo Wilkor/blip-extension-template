@@ -91,10 +91,11 @@ export const saveTools = async (
 
 export const addTool = async (
   newToolData: Omit<MCPTool, 'id' | 'createdAt'>,
+  currentTools?: MCPTool[],
   contractId?: string | null,
   authorizationKey?: string | null
 ): Promise<MCPTool> => {
-  const tools = await getStoredTools(contractId, authorizationKey);
+  const tools = currentTools && currentTools.length >= 0 ? currentTools : await getStoredTools(contractId, authorizationKey);
   const newTool: MCPTool = {
     ...newToolData,
     id: `mcp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -107,10 +108,11 @@ export const addTool = async (
 
 export const toggleToolEnabled = async (
   id: string,
+  currentTools?: MCPTool[],
   contractId?: string | null,
   authorizationKey?: string | null
 ): Promise<MCPTool[]> => {
-  const tools = await getStoredTools(contractId, authorizationKey);
+  const tools = currentTools && currentTools.length >= 0 ? currentTools : await getStoredTools(contractId, authorizationKey);
   const updated = tools.map((tool) =>
     tool.id === id ? { ...tool, enabled: !tool.enabled } : tool
   );
@@ -120,10 +122,11 @@ export const toggleToolEnabled = async (
 
 export const deleteTool = async (
   id: string,
+  currentTools?: MCPTool[],
   contractId?: string | null,
   authorizationKey?: string | null
 ): Promise<MCPTool[]> => {
-  const tools = await getStoredTools(contractId, authorizationKey);
+  const tools = currentTools && currentTools.length >= 0 ? currentTools : await getStoredTools(contractId, authorizationKey);
   const updated = tools.filter((tool) => tool.id !== id);
   await saveTools(updated, contractId, authorizationKey);
   return updated;

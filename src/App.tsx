@@ -74,21 +74,20 @@ export const App: React.FC = () => {
 
   const handleToolAdded = async (toolData: Omit<MCPTool, 'id' | 'createdAt'>): Promise<MCPTool> => {
     const contractId = blipContext.application?.tenantId || blipContext.application?.shortName;
-    const created = await addTool(toolData, contractId, blipContext.authorizationKey);
-    const updated = await getStoredTools(contractId, blipContext.authorizationKey);
-    setTools(updated);
+    const created = await addTool(toolData, tools, contractId, blipContext.authorizationKey);
+    setTools((prev) => [created, ...prev]);
     return created;
   };
 
   const handleToggleTool = async (id: string) => {
     const contractId = blipContext.application?.tenantId || blipContext.application?.shortName;
-    const updated = await toggleToolEnabled(id, contractId, blipContext.authorizationKey);
+    const updated = await toggleToolEnabled(id, tools, contractId, blipContext.authorizationKey);
     setTools(updated);
   };
 
   const handleDeleteTool = async (id: string) => {
     const contractId = blipContext.application?.tenantId || blipContext.application?.shortName;
-    const updated = await deleteTool(id, contractId, blipContext.authorizationKey);
+    const updated = await deleteTool(id, tools, contractId, blipContext.authorizationKey);
     setTools(updated);
   };
 
