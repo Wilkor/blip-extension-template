@@ -95,8 +95,9 @@ export const getBucketData = async <T>(
       },
     });
 
-    if (response && response.status === 'success' && response.resource) {
-      return response.resource as T;
+    const resObj = response as { status?: string; resource?: unknown } | null | undefined;
+    if (resObj && resObj.status === 'success' && resObj.resource) {
+      return resObj.resource as T;
     }
   } catch (iframeErr) {
     console.warn('IframeMessageProxy getBucket error, tentando HTTP direto...', iframeErr);
@@ -158,7 +159,8 @@ export const setBucketData = async <T>(
       },
     });
 
-    if (response && response.status === 'success') {
+    const resObj = response as { status?: string } | null | undefined;
+    if (resObj && resObj.status === 'success') {
       return true;
     }
   } catch (iframeErr) {
