@@ -11,7 +11,7 @@ interface ParsedServerItem {
 }
 
 interface MCPRegistrationCardProps {
-  onToolAdded: (toolData: Omit<MCPTool, 'id' | 'createdAt'>) => MCPTool;
+  onToolAdded: (toolData: Omit<MCPTool, 'id' | 'createdAt'>) => MCPTool | Promise<MCPTool>;
 }
 
 export const MCPRegistrationCard: FC<MCPRegistrationCardProps> = ({ onToolAdded }) => {
@@ -97,7 +97,7 @@ export const MCPRegistrationCard: FC<MCPRegistrationCardProps> = ({ onToolAdded 
 
     const keywordList = [name.trim().toLowerCase()];
 
-    const createdTool = onToolAdded({
+    const createdTool = await onToolAdded({
       name: name.trim(),
       serverUrl: serverUrl.trim(),
       transportType,

@@ -22,12 +22,25 @@ export const App: React.FC = () => {
   const [tools, setTools] = useState<MCPTool[]>([]);
   const [loadingTools, setLoadingTools] = useState<boolean>(true);
 
-  const loadBlipData = async () => {
+  const loadTools = async (contractId?: string | null, authKey?: string | null) => {
+    setLoadingTools(true);
+    const stored = await getStoredTools(contractId, authKey);
+    setTools(stored);
+    setLoadingTools(false);
+  };
+
+  const loadBlipDataAndTools = async () => {
     setBlipContext((prev) => ({ ...prev, loading: true }));
+    let contractId: string | null = null;
+    let authKey: string | null = null;
+
     try {
       const app = await getApplication();
       const user = await getLoggedUser();
-      const authKey = app ? createAuthorizationKey(app.shortName, app.accessKey) : '';
+      if (app) {
+        authKey = createAuthorizationKey(app.shortName, app.accessKey);
+        contractId = app.tenantId || app.shortName;
+      }
 
       setBlipContext({
         application: app,
@@ -39,18 +52,12 @@ export const App: React.FC = () => {
       console.warn('Erro ao carregar contexto Blip:', err);
       setBlipContext((prev) => ({ ...prev, loading: false }));
     }
-  };
 
-  const loadTools = () => {
-    setLoadingTools(true);
-    const stored = getStoredTools();
-    setTools(stored);
-    setLoadingTools(false);
+    await loadTools(contractId, authKey);
   };
 
   useEffect(() => {
-    loadBlipData();
-    loadTools();
+    void loadBlipDataAndTools();
   }, []);
 
   useEffect(() => {
@@ -65,19 +72,23 @@ export const App: React.FC = () => {
     return () => observer.disconnect();
   }, [activeTab, tools]);
 
-  const handleToolAdded = (toolData: Omit<MCPTool, 'id' | 'createdAt'>): MCPTool => {
-    const created = addTool(toolData);
-    setTools(getStoredTools());
+  const handleToolAdded = async (toolData: Omit<MCPTool, 'id' | 'createdAt'>): Promise<MCPTool> => {
+    const contractId = blipContext.application?.tenantId || blipContext.application?.shortName;
+    const created = await addTool(toolData, contractId, blipContext.authorizationKey);
+    const updated = await getStoredTools(contractId, blipContext.authorizationKey);
+    setTools(updated);
     return created;
   };
 
-  const handleToggleTool = (id: string) => {
-    const updated = toggleToolEnabled(id);
+  const handleToggleTool = async (id: string) => {
+    const contractId = blipContext.application?.tenantId || blipContext.application?.shortName;
+    const updated = await toggleToolEnabled(id, contractId, blipContext.authorizationKey);
     setTools(updated);
   };
 
-  const handleDeleteTool = (id: string) => {
-    const updated = deleteTool(id);
+  const handleDeleteTool = async (id: string) => {
+    const contractId = blipContext.application?.tenantId || blipContext.application?.shortName;
+    const updated = await deleteTool(id, contractId, blipContext.authorizationKey);
     setTools(updated);
   };
 

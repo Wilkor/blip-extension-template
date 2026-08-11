@@ -274,3 +274,7 @@ Audita o servidor MCP selecionado contra 5 vetores de ataque principais:
 23. **Proxy CORS PHP Nativo e Fallback Multi-proxy (`public/proxy.php`, `mcpService.ts`)**:
     - Criado o script `public/proxy.php` em PHP para ser executado no próprio servidor da Hostinger. Requisições servidor-para-servidor via cURL não sofrem bloqueios de CORS, resolvendo a comunicação com o CloudHub MuleSoft.
     - Implementada estratégia de fallback em cascata no `mcpService.ts` (Proxy 1: `./proxy.php` da Hostinger -> Proxy 2: `allorigins` -> Proxy 3: `corsproxy`), garantindo resiliência total a erros de CORS do navegador.
+24. **Persistência de Servidores MCP via Blip Bucket API (`blipService.ts`, `mcpService.ts`, `App.tsx`)**:
+    - Implementada gravação e leitura remota de servidores MCP no Bucket do Blip (`/buckets/mcp_servers`).
+    - Comunicação dupla: via `IframeMessageProxy` dentro do iframe da extensão Blip e via HTTP `POST https://${contract_id}.http.msging.net/commands` utilizando `Authorization: Key {authKey}` (`tenantId` = `contract_id`).
+    - Adicionado fallback automático para `localStorage` caso o contexto Blip não esteja disponível no ambiente local.
