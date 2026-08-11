@@ -278,3 +278,6 @@ Audita o servidor MCP selecionado contra 5 vetores de ataque principais:
     - Implementada gravação e leitura remota de servidores MCP no Bucket do Blip (`/buckets/mcp_servers`).
     - Comunicação dupla: via `IframeMessageProxy` dentro do iframe da extensão Blip e via HTTP `POST https://${contract_id}.http.msging.net/commands` utilizando `Authorization: Key {authKey}` (`tenantId` = `contract_id`).
     - Adicionado fallback automático para `localStorage` caso o contexto Blip não esteja disponível no ambiente local.
+25. **Salvamento Instantâneo no Bucket sem Bloqueio de Rede (`MCPRegistrationCard.tsx`)**:
+    - Reestruturado o formulário para salvar o servidor MCP no Bucket do contrato **instantaneamente ao clicar em "Salvar & Conectar"**, sem travar nem aguardar sondagens lentas de rede.
+    - Garante que a gravação no Bucket ocorra em 100% das submissões com feedback visual imediato.

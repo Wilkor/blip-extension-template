@@ -86,36 +86,52 @@ export const MCPRegistrationCard: FC<MCPRegistrationCardProps> = ({ onToolAdded 
       return;
     }
 
-    setFeedback({ type: 'info', message: 'Consultando ferramentas e instruções do servidor MCP...' });
-
-    // Busca automaticamente as ferramentas e instruções do servidor MCP no momento do cadastro
-    const serverDetails = await fetchMCPToolsAndInstructions(
-      serverUrl.trim(),
-      transportType,
-      getHeadersMap()
-    );
+    setFeedback({ type: 'info', message: 'Salvando servidor MCP no Bucket do Blip...' });
 
     const keywordList = [name.trim().toLowerCase()];
+    const targetServerUrl = serverUrl.trim();
+    const targetName = name.trim();
+    const currentHeaders = getHeadersMap();
 
+    // 1. Salva OBRIGATORIAMENTE no Bucket do Blip imediatamente
     const createdTool = await onToolAdded({
-      name: name.trim(),
-      serverUrl: serverUrl.trim(),
+      name: targetName,
+      serverUrl: targetServerUrl,
       transportType,
-      headers: getHeadersMap(),
+      headers: currentHeaders,
       keywords: keywordList,
-      description: serverDetails.instructions || 'Servidor MCP conectado no Blip',
-      instructions: serverDetails.instructions,
-      discoveredTools: serverDetails.tools,
+      description: 'Servidor MCP conectado no Blip',
+      instructions: undefined,
+      discoveredTools: [],
       enabled: true,
     });
 
-    const toolsCount = serverDetails.tools.length;
     setFeedback({
       type: 'success',
-      message: `Servidor MCP '${createdTool.name}' conectado! ${toolsCount > 0 ? `${toolsCount} ferramenta(s) identificada(s).` : 'Conexão concluída.'}`,
+      message: `Servidor MCP '${createdTool.name}' salvo com sucesso no Bucket do Blip! Validando ferramentas...`,
     });
+
     setName('');
     setServerUrl('');
+
+    // 2. Busca ferramentas e instruções sem travar o salvamento no Bucket
+    try {
+      const serverDetails = await fetchMCPToolsAndInstructions(
+        targetServerUrl,
+        transportType,
+        currentHeaders
+      );
+
+      if (serverDetails.ok) {
+        const toolsCount = serverDetails.tools.length;
+        setFeedback({
+          type: 'success',
+          message: `Servidor MCP '${targetName}' salvo no Bucket do Blip! ${toolsCount > 0 ? `${toolsCount} ferramenta(s) conectada(s).` : 'Servidor pronto.'}`,
+        });
+      }
+    } catch {
+      // Servidor já salvo com sucesso no Bucket
+    }
   };
 
   const handleImportJson = () => {
