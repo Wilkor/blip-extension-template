@@ -271,3 +271,6 @@ Audita o servidor MCP selecionado contra 5 vetores de ataque principais:
 22. **Suporte a Importação de Configuração JSON MCP (`MCPRegistrationCard.tsx`)**:
     - Adicionada funcionalidade de importação direta de JSON no padrão `mcpServers` (compatível com Cursor, VS Code e Claude Desktop).
     - Extração automática de `name`, `serverUrl`, `headers` e `transportType`, permitindo cadastrar servidores colando o bloco JSON diretamente na extensão.
+23. **Proxy CORS PHP Nativo e Fallback Multi-proxy (`public/proxy.php`, `mcpService.ts`)**:
+    - Criado o script `public/proxy.php` em PHP para ser executado no próprio servidor da Hostinger. Requisições servidor-para-servidor via cURL não sofrem bloqueios de CORS, resolvendo a comunicação com o CloudHub MuleSoft.
+    - Implementada estratégia de fallback em cascata no `mcpService.ts` (Proxy 1: `./proxy.php` da Hostinger -> Proxy 2: `allorigins` -> Proxy 3: `corsproxy`), garantindo resiliência total a erros de CORS do navegador.

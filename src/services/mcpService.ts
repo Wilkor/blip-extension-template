@@ -89,16 +89,26 @@ export const deleteTool = (id: string): MCPTool[] => {
   return updated;
 };
 
+const getProxyUrl = (serverUrl: string, proxyAttempt: number): string => {
+  const encoded = encodeURIComponent(serverUrl);
+  if (proxyAttempt === 1) {
+    // Proxy PHP local hospedado na Hostinger
+    return `./proxy.php?url=${encoded}`;
+  }
+  if (proxyAttempt === 2) {
+    return `https://api.allorigins.win/raw?url=${encoded}`;
+  }
+  return `https://corsproxy.io/?${encoded}`;
+};
+
 export const testMCPConnection = async (
   serverUrl: string,
   transportType: MCPTransportType,
   headers: Record<string, string>,
-  isRetryViaProxy = false
+  proxyAttempt = 0
 ): Promise<{ ok: boolean; message: string; responseTimeMs: number }> => {
   const startTime = Date.now();
-  const targetUrl = isRetryViaProxy
-    ? `https://corsproxy.io/?${encodeURIComponent(serverUrl)}`
-    : serverUrl;
+  const targetUrl = proxyAttempt === 0 ? serverUrl : getProxyUrl(serverUrl, proxyAttempt);
 
   try {
     const res = await fetch(targetUrl, {
@@ -115,12 +125,19 @@ export const testMCPConnection = async (
 
     const responseTimeMs = Date.now() - startTime;
     if (res.ok || res.status === 405 || res.status === 400 || res.status === 200) {
+      const mode = proxyAttempt > 0 ? ` (via Proxy #${proxyAttempt})` : '';
       return {
         ok: true,
-        message: `Conexão bem sucedida${isRetryViaProxy ? ' (via CORS Proxy)' : ''} (${res.status} ${res.statusText}) em ${responseTimeMs}ms.`,
+        message: `Conexão bem sucedida${mode} (${res.status} ${res.statusText}) em ${responseTimeMs}ms.`,
         responseTimeMs,
       };
     }
+
+    // Se o proxy PHP não existir ou retornar 404 (rodando em dev local), avança para a próxima estratégia
+    if (proxyAttempt > 0 && proxyAttempt < 3 && res.status === 404) {
+      return await testMCPConnection(serverUrl, transportType, headers, proxyAttempt + 1);
+    }
+
     return {
       ok: false,
       message: `Servidor respondeu com status ${res.status}: ${res.statusText}`,
@@ -129,22 +146,22 @@ export const testMCPConnection = async (
   } catch (err: unknown) {
     const responseTimeMs = Date.now() - startTime;
     const errorMessage = err instanceof Error ? err.message : 'Servidor inacessível';
+    const isCors = errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError');
 
-    // Se falhou diretamente por erro de rede/CORS ("Failed to fetch"), tenta via CORS Proxy automaticamente
-    if (!isRetryViaProxy && (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError'))) {
+    // Tenta sequencialmente os proxies (1: PHP local Hostinger -> 2: allorigins -> 3: corsproxy)
+    if (isCors && proxyAttempt < 3) {
       try {
-        const proxyResult = await testMCPConnection(serverUrl, transportType, headers, true);
+        const proxyResult = await testMCPConnection(serverUrl, transportType, headers, proxyAttempt + 1);
         if (proxyResult.ok) {
           return proxyResult;
         }
-      } catch (proxyErr) {
-        // Se o proxy falhar, prossegue com diagnóstico de CORS
+      } catch {
+        // Prossegue para a próxima tentativa ou exibe diagnóstico
       }
     }
 
-    const isCors = errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError');
     const diagnosticMessage = isCors
-      ? `Erro de CORS / Conexão: O navegador bloqueou a requisição para "${serverUrl}". O servidor MCP remoto precisa aceitar requisições cross-origin retornando os cabeçalhos 'Access-Control-Allow-Origin: *' e 'Access-Control-Allow-Headers: Content-Type, Authorization'.`
+      ? `Erro de CORS / Conexão: O navegador bloqueou a requisição para "${serverUrl}". Suba o arquivo 'proxy.php' na Hostinger ou garanta que o servidor MCP aceite 'Access-Control-Allow-Origin: *'.`
       : `Erro de conexão: ${errorMessage}`;
 
     return {
@@ -159,16 +176,14 @@ export const fetchMCPToolsAndInstructions = async (
   serverUrl: string,
   transportType: MCPTransportType,
   headers: Record<string, string>,
-  isRetryViaProxy = false
+  proxyAttempt = 0
 ): Promise<{
   ok: boolean;
   message: string;
   tools: DiscoveredMCPToolItem[];
   instructions?: string;
 }> => {
-  const targetUrl = isRetryViaProxy
-    ? `https://corsproxy.io/?${encodeURIComponent(serverUrl)}`
-    : serverUrl;
+  const targetUrl = proxyAttempt === 0 ? serverUrl : getProxyUrl(serverUrl, proxyAttempt);
 
   try {
     // 1. Consulta lista de ferramentas via tools/list
@@ -238,7 +253,7 @@ export const fetchMCPToolsAndInstructions = async (
               ? `Servidor: ${initData.result.serverInfo.name || ''} - ${initData.result.serverInfo.description}`
               : undefined);
         }
-      } catch (initErr) {
+      } catch {
         // Ignora erro de initialize
       }
     }
@@ -252,6 +267,10 @@ export const fetchMCPToolsAndInstructions = async (
       };
     }
 
+    if (proxyAttempt > 0 && proxyAttempt < 3 && toolsRes.status === 404) {
+      return await fetchMCPToolsAndInstructions(serverUrl, transportType, headers, proxyAttempt + 1);
+    }
+
     return {
       ok: false,
       message: `Status ${toolsRes.status}: ${toolsRes.statusText}`,
@@ -259,12 +278,13 @@ export const fetchMCPToolsAndInstructions = async (
     };
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : 'Erro ao consultar ferramentas';
+    const isCors = errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError');
 
-    if (!isRetryViaProxy && (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError'))) {
+    if (isCors && proxyAttempt < 3) {
       try {
-        return await fetchMCPToolsAndInstructions(serverUrl, transportType, headers, true);
-      } catch (proxyErr) {
-        // Ignora erro do proxy
+        return await fetchMCPToolsAndInstructions(serverUrl, transportType, headers, proxyAttempt + 1);
+      } catch {
+        // Ignora erro do proxy e segue
       }
     }
 
