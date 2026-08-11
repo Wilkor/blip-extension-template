@@ -284,3 +284,15 @@ Audita o servidor MCP selecionado contra 5 vetores de ataque principais:
 26. **Disparo Direto de Comando SET no Bucket ao Salvar (`mcpService.ts`, `App.tsx`)**:
     - Ajustadas as funções `addTool`, `toggleToolEnabled` e `deleteTool` para reutilizarem o estado em memória e dispararem diretamente o comando `method: "set"` no URI `/buckets/mcp_servers`.
     - Eliminada a chamada intermediária `method: "get"` antes de salvar, fazendo com que a ação de clique envie a requisição `SET` imediatamente ao Bucket do Blip.
+27. **Integração Completa do Bucket com `to: postmaster@msging.net` e Mapeamento HTTP (`blipService.ts`, `mcpStorageService.ts`)**:
+    - Ajustados os comandos de Bucket (`getBucketData`, `setBucketData`, `deleteBucketData`) para incluírem a propriedade `"to": "postmaster@msging.net"` na carga útil enviada à API Blip HTTP (`POST https://{{contract_id}}.http.msging.net/commands`) e via `IframeMessageProxy`.
+    - Definida a leitura e gravação no Bucket do Blip (`/buckets/mcp_servers`) como fonte de dados primária do sistema, sincronizando com o `localStorage` como fallback/cache secundário.
+    - Modularizados os serviços MCP (`mcpStorageService.ts`, `mcpConnectionService.ts` e `mcpService.ts`) mantendo a conformidade com o limite de 300 linhas por arquivo.
+28. **Tratamento de Embrulho de Objeto JSON para Arrays no Bucket do Blip (`blipService.ts`)**:
+    - Adicionado embrulho automático de arrays em objeto JSON `{ items: data }` na função `setBucketData`, eliminando a rejeição e o erro `code: 21` (`The property is not a JSON`) retornado pela API do Blip ao tentar gravar arrays puros no campo `resource`.
+    - Adicionada a função `parseBucketResource` em `getBucketData` para extrair e desenvelopar de forma transparente a propriedade `.items` (ou `.tools`) ao ler a coleção do Bucket.
+29. **Resolução de Aviso do Webpack no Servidor Dev (`src/config/appsettings.development.json`)**:
+    - Criado o arquivo `appsettings.development.json` dentro do diretório `src/config/` para eliminar o aviso `Module not found` gerado pela importação condicional em `src/config/index.ts` durante o `npm run dev` e `npm run build`.
+
+
+
