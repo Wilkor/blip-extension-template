@@ -52,8 +52,13 @@ export const getLoggedUser = async (): Promise<BlipLoggedUser | null> => {
 export const createAuthorizationKey = (shortName: string, accessKey: string): string => {
   if (!shortName || !accessKey) return '';
   try {
-    const decodedAccessKey = atob(accessKey);
-    const encoded = btoa(`${shortName}:${decodedAccessKey}`);
+    let plainKey = accessKey;
+    try {
+      plainKey = atob(accessKey);
+    } catch {
+      plainKey = accessKey;
+    }
+    const encoded = btoa(`${shortName}:${plainKey}`);
     return `Key ${encoded}`;
   } catch (err) {
     console.error('Erro ao computar Authorization Key:', err);
@@ -87,6 +92,7 @@ export const getBucketData = async <T>(
     const { response } = await IframeMessageProxy.sendMessage({
       action: 'sendCommand',
       content: {
+        destination: 'MessagingHubService',
         command: {
           id: guid,
           method: 'get',
@@ -149,6 +155,7 @@ export const setBucketData = async <T>(
     const { response } = await IframeMessageProxy.sendMessage({
       action: 'sendCommand',
       content: {
+        destination: 'MessagingHubService',
         command: {
           id: guid,
           method: 'set',
