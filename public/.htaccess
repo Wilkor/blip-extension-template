@@ -1,0 +1,9 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /mcp-analyzer/
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME} !-l
+  RewriteRule . /mcp-analyzer/index.html [L]
+</IfModule>
